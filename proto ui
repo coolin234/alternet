@@ -1,0 +1,88 @@
+import curses
+import os
+import yaml
+
+ZINE_DIR = "./zines"  # where your .yml files live
+
+
+def load_zines():
+    zines = []
+    for filename in os.listdir(ZINE_DIR):
+        if filename.endswith(".yml"):
+            with open(os.path.join(ZINE_DIR, filename), "r") as f:
+                data = yaml.safe_load(f)
+                zines.append(data)
+    return zines
+
+
+def main(stdscr):
+    curses.curs_set(0)
+    stdscr.nodelay(False)
+
+    zines = load_zines()
+    if not zines:
+        stdscr.addstr(0, 0, "No zines found.")
+        stdscr.getch()
+        return
+
+    index = 0
+    reading = False
+    page = 0
+
+    while True:
+        stdscr.clear()
+        current = zines[index]
+        title = current.get("title", "Untitled")
+        tags = ", ".join(current.get("tags", []))
+        summary = current.get("summary", "")
+        pages = current.get("pages", [])
+
+        if reading:
+            stdscr.addstr(1, 2, f"{title} - Page {page+1}/{len(pages)}")
+            stdscr.addstr(3, 2, pages[page])
+            stdscr.addstr(20, 2, "[↓] Next page  [q] Back")
+        else:
+            left = zines[(index - 1) % len(zines)]["title"]
+            right = zines[(index + 1) % len(zines)]["title"]
+
+            stdscr.addstr(1, 10, "ZINE READER TETRIS")
+            stdscr.addstr(3, 20, f"[ {title} ]")
+            stdscr.addstr(4, 10, f"< {left}")
+            stdscr.addstr(4, 40, f"{right} >")
+
+            stdscr.addstr(6, 2, f"Tags: {tags}")
+            stdscr.addstr(8, 2, "Summary:")
+            lines = summary.splitlines()
+            for i, line in enumerate(lines[:5]):
+                stdscr.addstr(9 + i, 4, line)
+
+            stdscr.addstr(15, 2, "[←/→] Rotate  [↓] Read Preview  [Space] Open")
+
+        key = stdscr.getch()
+
+        if key == curses.KEY_LEFT and not reading:
+            index = (index - 1) % len(zines)
+        elif key == curses.KEY_RIGHT and not reading:
+            index = (index + 1) % len(zines)
+        elif key == ord(" ") and not reading:
+            reading = True
+            page = 0
+        elif key == curses.KEY_DOWN:
+            if reading:
+                if page + 1 < len(pages):
+                    page += 1
+            else:
+                reading = True
+                page = 0
+        elif key == ord("q"):
+            if reading:
+                reading = False
+                page = 0
+            else:
+                break
+
+        stdscr.refresh()
+
+
+if __name__ == "__main__":
+    curses.wrapper(main)
