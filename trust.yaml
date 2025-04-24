@@ -1,0 +1,4 @@
+- id: "protocol-maintainer"
+  fingerprint: "0xDEADBEEF12345678"
+  key: "protocol-key.asc"
+  comment: "Used to sign bundles only"
